@@ -127,7 +127,12 @@ int main(void)
   {
     /* USER CODE END WHILE */
 	  uint8_t msg[] = "hello world!\n\r";
+	  HAL_LIN_SendBreak(&huart4);
+	  HAL_Delay(2000);	// wait 500ms
+	  HAL_LIN_SendBreak(&huart4);
+	  //HAL_Delay(100);	// wait 100ms
 	  HAL_UART_Transmit(&huart4, msg, strlen((char*)msg), 100);
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
