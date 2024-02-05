@@ -89,13 +89,13 @@ static void MX_UART4_Init(void);
 
 
 uint8_t flagRcved;              /* 受信完�?フラグ */
-uint16_t rcvLength;             /* 受信?��?ータ数 */
+uint16_t rcvLength;             /* 受信??��?��?ータ数 */
 uint8_t rcvBuffer[BUFF_SIZE];   /* 受信バッファ */
 uint8_t sndBuffer[BUFF_SIZE];   /* 送信バッファ */
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-    flagRcved = TRUE;           /* 受信完�?フラグ設?��? */
+    flagRcved = TRUE;           /* 受信完�?フラグ設??��?��? */
 }
 /* USER CODE END 0 */
 
@@ -140,44 +140,47 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	    /* USER CODE END WHILE */
+		  do
+		      {
+		        /* 受信割り込み開始 */
+		        HAL_UART_Receive_IT(&huart4, rcvBuffer, 1);
+
+		        /* 受信割り込み終了待ち */
+		        while (flagRcved == FALSE)
+		        {
+		            ;
+		        }
+
+		        sndBuffer[rcvLength] = rcvBuffer[0];
+		        rcvLength++;
+		        flagRcved = FALSE;
+		      } while ((rcvBuffer[0] != CHAR_CR) && (rcvLength < BUFF_SIZE));
+
+		  	  /* ブレーク信号を送信 */
+		  	  GPIO_InitTypeDef GPIO_InitStruct = {0};
+		  	  //HAL_GPIO_DeInit(GPIOC, GPIO_PIN_10);
+		  	  GPIO_InitStruct.Pin = GPIO_PIN_10;
+		  	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+		  	  GPIO_InitStruct.Pull = GPIO_NOPULL;
+		  	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+		  	  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+		  	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_10, GPIO_PIN_RESET);
+		  	  HAL_Delay(1000);
+		  	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_10, GPIO_PIN_SET);
+
+		  	  /* 再度UART TxピンをUARTに割り当て後、受信した内容を送信 */
+		  	  GPIO_InitStruct.Pin = GPIO_PIN_10;
+		  	  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+		  	  GPIO_InitStruct.Pull = GPIO_NOPULL;
+		  	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+		  	  GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
+		  	  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+		      HAL_UART_Transmit_IT(&huart4, sndBuffer, rcvLength);
+		      rcvLength = 0;
     /* USER CODE END WHILE */
-	  do
-	      {
-	        /* 受信割り込み開始 */
-	        HAL_UART_Receive_IT(&huart4, rcvBuffer, 1);
 
-	        /* 受信割り込み終了待ち */
-	        while (flagRcved == FALSE)
-	        {
-	            ;
-	        }
-
-	        sndBuffer[rcvLength] = rcvBuffer[0];
-	        rcvLength++;
-	        flagRcved = FALSE;
-	      } while ((rcvBuffer[0] != CHAR_CR) && (rcvLength < BUFF_SIZE));
-
-
-	  	  GPIO_InitTypeDef GPIO_InitStruct = {0};
-	  	  HAL_GPIO_DeInit(GPIOC, GPIO_PIN_10);
-	  	  GPIO_InitStruct.Pin = GPIO_PIN_10;
-	  	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	  	  GPIO_InitStruct.Pull = GPIO_NOPULL;
-	  	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	  	  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-	  	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_10, GPIO_PIN_RESET);
-
-	  	  HAL_Delay(1000);
-	  	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_10, GPIO_PIN_SET);
-	  	  HAL_GPIO_DeInit(GPIOC, GPIO_PIN_10);
-
-	  	  /* 受信した内容を送信 */
-	  	  MX_UART4_Init();
-	      HAL_UART_Transmit_IT(&huart4, sndBuffer, rcvLength);
-	      rcvLength = 0;
-	      /* USER CODE END WHILE */
-
-	      /* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -317,7 +320,7 @@ static void MX_UART4_Init(void)
   huart4.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart4.Init.ClockPrescaler = UART_PRESCALER_DIV1;
   huart4.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_LIN_Init(&huart4, UART_LINBREAKDETECTLENGTH_10B) != HAL_OK)
+  if (HAL_UART_Init(&huart4) != HAL_OK)
   {
     Error_Handler();
   }
