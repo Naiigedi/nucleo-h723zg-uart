@@ -89,14 +89,50 @@ static void MX_UART4_Init(void);
 
 
 uint8_t flagRcved;              /* 受信完�?フラグ */
-uint16_t rcvLength;             /* 受信??��?��?ータ数 */
+uint16_t rcvLength;             /* 受信???��?��??��?��?ータ数 */
 uint8_t rcvBuffer[BUFF_SIZE];   /* 受信バッファ */
 uint8_t sndBuffer[BUFF_SIZE];   /* 送信バッファ */
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-    flagRcved = TRUE;           /* 受信完�?フラグ設??��?��? */
+    flagRcved = TRUE;           /* 受信完�?フラグ設???��?��??��?��? */
 }
+
+char* replace(char* s, const char* before, const char* after)
+{
+
+    const size_t before_len = strlen(before);
+    if (before_len == 0) {
+        return s;
+    }
+
+    const size_t after_len = strlen(after);
+    char* p = s;
+
+    for (;;) {
+
+        // 置換する文字をを探す
+        p = strstr(p, before);
+        if (p == NULL) {
+            // 見つからなければ、これ以上置換するものはないので終了する
+            break;
+        }
+
+        // 置換対象にならない位置を計算
+        const char* p2 = p + before_len;
+
+        // 置換対象にならない位置(p2) 以降の文字を、置換の影響をうけない位置に移動
+        memmove(p + after_len, p2, strlen(p2) + 1);
+
+        // 置換する
+        memcpy(p, after, after_len);
+
+        // 探索開始位置をずらす
+        p += after_len;
+    }
+
+    return s;
+	}
 /* USER CODE END 0 */
 
 /**
@@ -140,46 +176,45 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	    /* USER CODE END WHILE */
-		  do
-		      {
-		        /* 受信割り込み開始 */
-		        HAL_UART_Receive_IT(&huart4, rcvBuffer, 1);
-
-		        /* 受信割り込み終了待ち */
-		        while (flagRcved == FALSE)
-		        {
-		            ;
-		        }
-
-		        sndBuffer[rcvLength] = rcvBuffer[0];
-		        rcvLength++;
-		        flagRcved = FALSE;
-		      } while ((rcvBuffer[0] != CHAR_CR) && (rcvLength < BUFF_SIZE));
-
-		  	  /* ブレーク信号を送信 */
-		  	  GPIO_InitTypeDef GPIO_InitStruct = {0};
-		  	  //HAL_GPIO_DeInit(GPIOC, GPIO_PIN_10);
-		  	  GPIO_InitStruct.Pin = GPIO_PIN_10;
-		  	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-		  	  GPIO_InitStruct.Pull = GPIO_NOPULL;
-		  	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-		  	  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-		  	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_10, GPIO_PIN_RESET);
-		  	  HAL_Delay(1000);
-		  	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_10, GPIO_PIN_SET);
-
-		  	  /* 再度UART TxピンをUARTに割り当て後、受信した内容を送信 */
-		  	  GPIO_InitStruct.Pin = GPIO_PIN_10;
-		  	  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-		  	  GPIO_InitStruct.Pull = GPIO_NOPULL;
-		  	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-		  	  GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
-		  	  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-		      HAL_UART_Transmit_IT(&huart4, sndBuffer, rcvLength);
-		      rcvLength = 0;
     /* USER CODE END WHILE */
+	  do
+	      {
+	        /* 受信割り込み開始 */
+	        HAL_UART_Receive_IT(&huart4, rcvBuffer, 1);
 
+	        /* 受信割り込み終了待ち */
+	        while (flagRcved == FALSE)
+	        {
+	            ;
+	        }
+
+	        sndBuffer[rcvLength] = rcvBuffer[0];
+	        rcvLength++;
+	        flagRcved = FALSE;
+	      } while ((rcvBuffer[0] != CHAR_CR) && (rcvLength < BUFF_SIZE));
+
+	  	  /* ブレーク信号を送信 */
+	  	  GPIO_InitTypeDef GPIO_InitStruct = {0};
+	  	  //HAL_GPIO_DeInit(GPIOC, GPIO_PIN_10);
+	  	  GPIO_InitStruct.Pin = GPIO_PIN_10;
+	  	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	  	  GPIO_InitStruct.Pull = GPIO_NOPULL;
+	  	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	  	  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+	  	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_10, GPIO_PIN_RESET);
+	  	  HAL_Delay(1000);
+	  	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_10, GPIO_PIN_SET);
+
+	  	  /* 再度UART TxピンをUARTに割り当て後、受信した内容を送信 */
+	  	  GPIO_InitStruct.Pin = GPIO_PIN_10;
+	  	  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	  	  GPIO_InitStruct.Pull = GPIO_NOPULL;
+	  	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	  	  GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
+	  	  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+	  	  replace(sndBuffer, "BEFORE", "AFTER");
+	      HAL_UART_Transmit_IT(&huart4, sndBuffer, rcvLength);
+	      rcvLength = 0;
     /* USER CODE BEGIN 3 */
     /* USER CODE BEGIN 3 */
   }
@@ -310,7 +345,7 @@ static void MX_UART4_Init(void)
 
   /* USER CODE END UART4_Init 1 */
   huart4.Instance = UART4;
-  huart4.Init.BaudRate = 115200;
+  huart4.Init.BaudRate = 10400;
   huart4.Init.WordLength = UART_WORDLENGTH_8B;
   huart4.Init.StopBits = UART_STOPBITS_1;
   huart4.Init.Parity = UART_PARITY_NONE;
